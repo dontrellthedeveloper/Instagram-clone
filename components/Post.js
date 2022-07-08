@@ -2,7 +2,27 @@ import React from 'react';
 
 function Post({id, username, userImg, caption}) {
     return (
-        <div>I am a post</div>
+        <div>
+            {/* Header */}
+
+
+            {/*  img  */}
+
+
+            {/*  Button  */}
+
+
+            {/*  caption  */}
+
+
+            {/*  comments  */}
+
+
+            {/*  input box  */}
+
+
+        </div>
+
     );
 }
 
