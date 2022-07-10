@@ -1,5 +1,5 @@
 
-import {addDoc, collection, onSnapshot, orderBy, query, serverTimestamp} from "@firebase/firestore";
+import {addDoc, collection, onSnapshot, orderBy, query, serverTimestamp, setDoc, doc, deleteDoc} from "@firebase/firestore";
 import {
     BookmarkIcon,
     ChatIcon,
@@ -21,24 +21,54 @@ function Post({id, username, userImg, caption, img, timestamp}) {
     const [comment, setComment] = useState('')
     const [comments, setComments] = useState([])
     const [error, setError] = useState('');
+    const [likes, setLikes] = useState([]);
+    const [hasLiked, setHasLiked] = useState(false);
 
     useEffect(() => {
             try {
-                    onSnapshot(
-                        query(
-                            // collection(db, 'posts', 'jmmnyP8NVanEMe96LWCI', 'comments'),
-                            collection(db, 'posts', id, 'comments'),
-                            orderBy('timestamp', 'desc')
-                        ),
-                        (snapshot) => {setComments(snapshot.docs)});
+                onSnapshot(
+                    query(
+                        // collection(db, 'posts', 'jmmnyP8NVanEMe96LWCI', 'comments'),
+                        collection(db, 'posts', id, 'comments'),
+                        orderBy('timestamp', 'desc')
+                    ),
+                    (snapshot) => {setComments(snapshot.docs)});
             } catch (error) {
                 const {code, message} = error;
                 setError(message)
                 console.log(error)
             }
         //
-        },[db])
+        },[db, id])
 
+    useEffect(() => {
+        try {
+            onSnapshot(collection(db, 'posts', id, 'likes'), (snapshot) => {
+                setLikes(snapshot.docs)})
+        } catch (error) {
+            const {code, message} = error;
+            setError(message)
+            console.log(error)
+        }
+    },[db, id])
+
+
+    useEffect(() => {
+        setHasLiked(
+            likes.findIndex((like) => (like.id === session?.user?.uid)) !== -1)
+    }, [likes])
+
+
+    const likePost = async () => {
+        if (hasLiked) {
+            await deleteDoc(doc(db, 'posts',id, 'likes', session.user.uid))
+        } else {
+            await setDoc(doc(db, 'posts', id, 'likes', session.user.uid), {
+                username: session.user.username
+            })
+        }
+
+    }
 
 
     const sendComment = async (e) => {
@@ -75,8 +105,15 @@ function Post({id, username, userImg, caption, img, timestamp}) {
             {/*  Button  */}
             {session && (
                 <div className='flex justify-between px-4 pt-4'>
+                    {
+                        hasLiked ? (
+                            <HeartIconFilled onClick={likePost} className='btn text-red-500' />
+                        ) : (
+                            <HeartIcon onClick={likePost} className='btn' />
+                        )
+                    }
                     <div className='flex space-x-4'>
-                        <HeartIcon className='btn' />
+                        <HeartIcon onClick={likePost} className='btn' />
                         <ChatIcon className='btn' />
                         <PaperAirplaneIcon className='btn' />
                     </div>
@@ -90,7 +127,11 @@ function Post({id, username, userImg, caption, img, timestamp}) {
             {/*  caption  */}
 
             <div className='flex items-center space-x-2'>
+
                 <p className='p-5 truncate flex-1'>
+                    {likes.length > 0 && (
+                        <p className='font-bold mb-1'>{likes.length} likes</p>
+                    )}
                     <span className='font-bold mr-1'>{username} </span>
                     {caption}
                 </p>
